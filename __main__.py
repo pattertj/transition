@@ -123,18 +123,23 @@ class TradeBot(Machine):
         )
 
         # Simple transition sequence in this example, but could be more complex if the strategy required it.
-        self.add_transition("OpenPosition", "Initial", "Open", before=["open_position"])
         self.add_transition(
-            "ClosePositionAtPT",
-            "Open",
-            "Closed",
+            trigger="OpenPosition",
+            source="Initial",
+            dest="Open",
+            before=["open_position"],
+        )
+        self.add_transition(
+            trigger="ClosePositionAtPT",
+            source="Open",
+            dest="Closed",
             before=["close_position_for_pt"],
             conditions=["close_for_pt"],
         )
         self.add_transition(
-            "ClosePositionAtSL",
-            "Open",
-            "Closed",
+            trigger="ClosePositionAtSL",
+            source="Open",
+            dest="Closed",
             before=["close_position_for_sl"],
             conditions=["close_for_sl"],
         )
