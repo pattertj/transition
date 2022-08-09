@@ -3,7 +3,7 @@ import logging.config
 import random
 import time
 
-from transitions import EventData, Machine, State
+from transitions import EventData, Machine
 
 logging.config.fileConfig(
     "logConfig.ini",
@@ -115,42 +115,44 @@ class TradeBot(Machine):
     def __init__(self):
         # Define our states, saving the bot status when we enter the states.
         states = [
-            State("Initial"),
-            State("Open", on_enter=["save", "monitor_position"]),
-            State("Closed", on_enter=["save", "cleanup_position"]),
+            {"name": "Initial"},
+            {"name": "Open", "on_enter": ["save", "monitor_position"]},
+            {"name": "Closed", "on_enter": ["save", "cleanup_position"]},
+        ]
+
+        transitions = [
+            {
+                "trigger": "OpenPosition",
+                "source": "Initial",
+                "dest": "Open",
+                "before": "open_position",
+            },
+            {
+                "trigger": "ClosePositionAtPT",
+                "source": "Open",
+                "dest": "Closed",
+                "before": "close_position_for_pt",
+                "conditions": "close_for_pt",
+            },
+            {
+                "trigger": "",
+                "source": "Open",
+                "dest": "Closed",
+                "before": "close_position_for_sl",
+                "conditions": "close_for_sl",
+            },
         ]
 
         # init the machine with our states, starting at 'Initial', handling errors, sending event data, generating default transitions, and ignoring invalid triggers
         Machine.__init__(
             self,
             states=states,
+            transitions=transitions,
             initial="Initial",
             on_exception="handle_error",
             send_event=True,
             auto_transitions=True,
             ignore_invalid_triggers=True,
-        )
-
-        # Simple transition sequence in this example, but could be more complex if the strategy required it.
-        self.add_transition(
-            trigger="OpenPosition",
-            source="Initial",
-            dest="Open",
-            before=["open_position"],
-        )
-        self.add_transition(
-            trigger="ClosePositionAtPT",
-            source="Open",
-            dest="Closed",
-            before=["close_position_for_pt"],
-            conditions=["close_for_pt"],
-        )
-        self.add_transition(
-            trigger="ClosePositionAtSL",
-            source="Open",
-            dest="Closed",
-            before=["close_position_for_sl"],
-            conditions=["close_for_sl"],
         )
 
 
