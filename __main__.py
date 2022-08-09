@@ -28,7 +28,7 @@ class TradeBot(Machine):
         print(self.state)
         print("Monitoring a Position")
         time.sleep(1) # Simulate the work
-        # Loop to find an exit condition, PT or Stop Loss, before closing
+        # Loop to monitor the trade and look for an exit condition, PT or Stop Loss, before closing
         var = random.random()
         if var < .5:
             self.close_for_pt = True
@@ -69,7 +69,7 @@ class TradeBot(Machine):
         print(self.state)
         print("Cleaning up a Position")
         time.sleep(1) # Simulate the work
-        # Final logging to discord, telegram alerts, something else?
+        # Final logging to discord, telegram alerts, db records?
         
     def handle_error(self, event: EventData):
         # Reprocess Order Entry Exceptions
@@ -79,34 +79,36 @@ class TradeBot(Machine):
             self.close_for_pt = False
             self.close_for_sl = False
             self.trigger(f'to_{source_name}')        
-        # Notifications or Cleanup
+        # Handle other exception types differently
+        # Send Notifications
         
     def save(self, event: EventData):
         print(f"Saving {self.state} state.")
-        # persiste the bot as a pickled object in our DB
+        # Persist the bot as a pickled object in our DB in case we need to restore it.
         time.sleep(.5) # Simulate the work
 
     def run(self):
+        # Run forever until we are closed.
         while self.state != 'Closed':
             # Got the possible triggers for our state
             a = self.get_triggers(self.state)
             
-            # Loop and try each, ignoring the default "to_" triggers and "Error"
+            # Loop and try each, ignoring the default "to_" triggers
             triggers = [x for x in a if not x.startswith("to_")]
             for trig in triggers:
                 if self.trigger(trig):
                     break
 
     def __init__(self):
-        # Define our states, saving the bot status when we enter the states, opening and closing positions as we exit.
+        # Define our states, saving the bot status when we enter the states.
         states = [
             State('Initial'),
             State('Open', on_enter=['save', 'monitor_position']),
             State('Closed', on_enter=['save', 'cleanup_position']),
             ]
         
-        # init the machine with our states, handling errors, starting at 'Initial', sending event data, not generating default transitions, and ignoring invalid triggers
-        Machine.__init__(self, states=states, initial='Initial', on_exception='handle_error', send_event=True, auto_transitions=True, ignore_invalid_triggers=True)  # 
+        # init the machine with our states, starting at 'Initial', handling errors, sending event data, generating default transitions, and ignoring invalid triggers
+        Machine.__init__(self, states=states, initial='Initial', on_exception='handle_error', send_event=True, auto_transitions=True, ignore_invalid_triggers=True) 
         
         # Simple transition sequence in this example, but could be more complex if the strategy required it.
         self.add_transition('OpenPosition', 'Initial', 'Open', before=['open_position'])
