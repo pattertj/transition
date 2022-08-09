@@ -39,6 +39,7 @@ class TradeBot(Machine):
         print(self.state)
         print("Monitoring a Position")
         time.sleep(1)  # Simulate the work
+
         # Loop to monitor the trade and look for an exit condition, PT or Stop Loss, before closing
         var = random.random()
         if var < 0.5:
@@ -114,12 +115,16 @@ class TradeBot(Machine):
 
     def __init__(self):
         # Define our states, saving the bot status when we enter the states.
+        # The monitor_position trigger is here so that it can be re-called if a transition exception occurs while placing the closing order
+        # cleanup_position is here because it should always be called when closing a position, regardless of the transition that brought you here
         states = [
             {"name": "Initial"},
             {"name": "Open", "on_enter": ["save", "monitor_position"]},
             {"name": "Closed", "on_enter": ["save", "cleanup_position"]},
         ]
 
+        # Define our transitions. One to open a position, one to close for stop loss, one to close for profit target.
+        # If any throws an exception placing the order, handle_error will revert the state and the bot will continue looking for an entry/exit
         transitions = [
             {
                 "trigger": "OpenPosition",
@@ -143,7 +148,7 @@ class TradeBot(Machine):
             },
         ]
 
-        # init the machine with our states, starting at 'Initial', handling errors, sending event data, generating default transitions, and ignoring invalid triggers
+        # init the machine with our states, transitions, starting at 'Initial', handling errors, sending event data, generating default transitions, and ignoring invalid triggers
         Machine.__init__(
             self,
             states=states,
@@ -167,7 +172,7 @@ if __name__ == "__main__":
 
 # If at any point there is an exception it is handled in 'handle_error'.
 # Exceptions in 'open_position' and 'close_position', will stop the state change and attempt to rollback to the source state and start over.
-# Exceptions in 'cleanup_position' and 'monitor_position' will continue processing the state and not rollback
+# Exceptions in 'cleanup_position' and 'monitor_position' will need to be handled in-method as the handle_error method only triggers on transitions.
 
 ### Output ###
 
