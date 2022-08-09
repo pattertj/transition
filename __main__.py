@@ -1,7 +1,16 @@
+import logging
+import logging.config
 import random
 import time
 
 from transitions import EventData, Machine, State
+
+logging.config.fileConfig(
+    "logConfig.ini",
+    disable_existing_loggers=False,
+)
+app_logger = logging.getLogger("app")
+app_logger.info("Starting App")
 
 
 class OrderEntryException(Exception):
